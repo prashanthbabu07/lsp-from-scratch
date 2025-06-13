@@ -63,6 +63,7 @@ Paste this into your Lazy plugin spec (e.g. `~/.config/nvim/lua/plugins/lsp.lua`
   },
   ft = { "text" },
 }
+```
 
 ## Acknowledgements
 
