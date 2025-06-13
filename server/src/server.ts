@@ -16,24 +16,26 @@ export interface RequestMessage extends NotificationMessage {
     id: number | string;
 }
 
-type RequestMethod = (message: RequestMessage) => ReturnType<typeof initialize> | ReturnType<typeof completion>;
+type RequestMethod = (
+    message: RequestMessage,
+) => ReturnType<typeof initialize> | ReturnType<typeof completion>;
 
 type NotificationMethod = (message: NotificationMessage) => void;
 
 const methodLookup: Record<string, RequestMethod | NotificationMethod> = {
-    "initialize": initialize,
+    initialize: initialize,
     "textDocument/completion": completion,
     "textDocument/didChange": didChange,
-    // Add other methods here as needed 
-}
+    // Add other methods here as needed
+};
 
-const respond = (id: RequestMessage['id'], result: object | null) => {
+const respond = (id: RequestMessage["id"], result: object | null) => {
     const message = JSON.stringify({ id, result });
     const messageLength = Buffer.byteLength(message, "utf-8");
     const header = `Content-Length: ${messageLength}\r\n\r\n`;
     log.write(header + message);
     process.stdout.write(header + message);
-}
+};
 
 let buffer = "";
 process.stdin.on("data", (chunk) => {
@@ -47,7 +49,10 @@ process.stdin.on("data", (chunk) => {
 
         // Continut unless the full message is in the buffer
         if (buffer.length < messageStart + contentLength) break;
-        const rawMessage = buffer.slice(messageStart, messageStart + contentLength);
+        const rawMessage = buffer.slice(
+            messageStart,
+            messageStart + contentLength,
+        );
         const message = JSON.parse(rawMessage);
         log.write({ id: message.id, method: message.method });
 
@@ -55,7 +60,7 @@ process.stdin.on("data", (chunk) => {
         const method = methodLookup[message.method];
         if (method) {
             const result = method(message);
-            if (result !== undefined) {
+            if (result && typeof result === "object") {
                 respond(message.id, result);
             }
         }
