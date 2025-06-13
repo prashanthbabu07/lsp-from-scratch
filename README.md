@@ -1,98 +1,71 @@
-# Minimum Viable VS Code Language Server Extension
+# 🧠 lsp-from-scratch
 
-NOTE: This is heavily based on [lsp-sample from vscode-extension-samples][sample] with the goal of removing example-specific code to ease starting a new Language Server.
+A minimal custom Language Server Protocol (LSP) implementation written in TypeScript, designed to demonstrate how to create your own LSP from scratch. This server provides **text completions** based on a static dictionary.
 
-This project aims to provide a starting point for developing a self-contained Language Server Extension for VS Code using TypeScript.
+## ✨ Features
 
-"Self-contained" in this context means that this extension bundles its own language server code rather than wrapping an existing language server executable.
+- LSP server implemented in TypeScript
+- Uses [`ts-node`](https://typestrong.org/ts-node/) to run directly from source
+- Simple dictionary-based autocomplete (textDocument/completion)
+- Designed for easy integration with Neovim using Lazy.nvim + `nvim-lspconfig`
 
-As an MVP, this omits
+---
 
-- linting
-- testing
-- behavior in the language server itself (besides connecting and listening to document changes)
+## 📦 Requirements
 
-## Getting Started
+- Node.js >= 16
+- Neovim >= 0.9
+- `ts-node` and `typescript` (installed via `npm install`)
+- Lazy.nvim plugin manager (recommended)
 
-1. Clone this repo
-2. Replace items in `package.json` marked `REPLACE_ME` with text related to your extension
-3. Do the same for `client/package.json` and `server/package.json`
-4. Do the same in `client/src/extension.ts`
-5. Run `npm install` from the repo root.
+---
 
-To make it easy to get started, this language server will run on _every_ file type by default. To target specific languages, change
+## 🚀 Installation
 
-`package.json`'s `activationEvents` to something like
+### 1. Add to `Lazy.nvim` Plugin List
 
-```
-"activationEvents": [
-  "onLanguage:plaintext"
-],
-```
+Paste this into your Lazy plugin spec (e.g. `~/.config/nvim/lua/plugins/lsp.lua`):
 
-And change the `documentSelector` in `client/src/extension.ts` to replace the `*` (e.g.)
+```lua
+{
+  "prashanthbabu07/lsp-from-scratch",
+  build = "npm install",
+  config = function()
+    local lspconfig = require("lspconfig")
+    local configs = require("lspconfig.configs")
+    local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
-```
-documentSelector: [{ scheme: "file", language: "plaintext" }],
-```
+    local plugin_path = vim.fn.stdpath("data") .. "/lazy/lsp-from-scratch"
+    local ts_node = plugin_path .. "/node_modules/.bin/ts-node"
+    local server_path = plugin_path .. "/server/src/server.ts"
 
-## Developing your extension
+    if not configs.lsp_from_scratch then
+      configs.lsp_from_scratch = {
+        default_config = {
+          cmd = { ts_node, server_path },
+          filetypes = { "text" },
+          root_dir = function() return vim.fn.getcwd() end,
+          settings = {},
+        },
+      }
+    end
 
-To help verify everything is working properly, we've included the following code in `server.ts` after the `onInitialize` function:
+    lspconfig.lsp_from_scratch.setup({
+      capabilities = capabilities,
+      on_attach = function()
+        print("✅ lsp-from-scratch attached")
+      end,
+    })
+  end,
+  dependencies = {
+    "neovim/nvim-lspconfig",
+    "hrsh7th/cmp-nvim-lsp",
+  },
+  ft = { "text" },
+}
 
-```typescript
-documents.onDidChangeContent((change) => {
-  connection.window.showInformationMessage(
-    "onDidChangeContent: " + change.document.uri
-  );
-});
-```
+## Acknowledgements
 
-From the root directory of this project, run `code .` Then in VS Code
+Inspired by video:  
+📺 [Writing a Language Server from Scratch in TypeScript](https://www.youtube.com/watch?v=Xo5VXTRoL6Q)
 
-1. Build the extension (both client and server) with `⌘+shift+B` (or `ctrl+shift+B` on windows)
-2. Open the Run and Debug view and press "Launch Client" (or press `F5`). This will open a `[Extension Development Host]` VS Code window.
-3. Opening or editing a file in that window should show an information message in VS Code like you see below.
-
-   ![example information message](https://semanticart.com/misc-images/minimum-viable-vscode-language-server-extension-info-message.png)
-
-4. Edits made to your `server.ts` will be rebuilt immediately but you'll need to "Launch Client" again (`⌘-shift-F5`) from the primary VS Code window to see the impact of your changes.
-
-[Debugging instructions can be found here][debug]
-
-## Distributing your extension
-
-Read the full [Publishing Extensions doc][publish] for the full details.
-
-Note that you can package and distribute a standalone `.vsix` file without publishing it to the marketplace by following [these instructions][vsix].
-
-## Anatomy
-
-```
-.
-├── .vscode
-│   ├── launch.json         // Tells VS Code how to launch our extension
-│   └── tasks.json          // Tells VS Code how to build our extension
-├── LICENSE
-├── README.md
-├── client
-│   ├── package-lock.json   // Client dependencies lock file
-│   ├── package.json        // Client manifest
-│   ├── src
-│   │   └── extension.ts    // Code to tell VS Code how to run our language server
-│   └── tsconfig.json       // TypeScript config for the client
-├── package-lock.json       // Top-level Dependencies lock file
-├── package.json            // Top-level manifest
-├── server
-│   ├── package-lock.json   // Server dependencies lock file
-│   ├── package.json        // Server manifest
-│   ├── src
-│   │   └── server.ts       // Language server code
-│   └── tsconfig.json       // TypeScript config for the client
-└── tsconfig.json           // Top-level TypeScript config
-```
-
-[debug]: https://code.visualstudio.com/api/language-extensions/language-server-extension-guide#debugging-both-client-and-server
-[sample]: https://github.com/microsoft/vscode-extension-samples/tree/main/lsp-sample
-[publish]: https://code.visualstudio.com/api/working-with-extensions/publishing-extension
-[vsix]: https://code.visualstudio.com/api/working-with-extensions/publishing-extension#packaging-extensions
